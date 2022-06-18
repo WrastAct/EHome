@@ -20,24 +20,27 @@ func (app *application) showRoomHandler(w http.ResponseWriter, r *http.Request) 
 
 	id, err := app.readIDParam(r)
 	if err != nil {
-		http.NotFound(w, r)
+		app.notFoundResponse(w, r)
 		return
 	}
 
 	furniture1 := data.Furniture{
-		ID:     1,
-		Name:   "Chair",
-		X:      10,
-		Y:      25,
-		Width:  25,
-		Height: 25,
-		Image:  "../img",
-		Shape:  data.Circle,
+		ID:          1,
+		Name:        "Chair",
+		Price:       423.75,
+		Description: "heh",
+		X:           10,
+		Y:           25,
+		Width:       25,
+		Height:      25,
+		Image:       "../img",
+		Shape:       data.Circle,
 	}
 
 	furniture2 := data.Furniture{
 		ID:     2,
 		Name:   "Table",
+		Price:  103.24,
 		X:      10,
 		Y:      25,
 		Width:  25,
@@ -48,17 +51,17 @@ func (app *application) showRoomHandler(w http.ResponseWriter, r *http.Request) 
 
 	room := data.Room{
 		ID:            id,
-		CreatedAt:     time.Now(),
+		Data:          time.Now(),
+		Description:   "Hehw",
 		Title:         "Custom room",
 		Width:         500,
 		Height:        300,
 		FurnitureList: []data.Furniture{furniture1, furniture2},
 	}
 
-	err = app.writeJSON(w, http.StatusOK, room, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"room": room}, nil)
 	if err != nil {
-		app.logger.Println(err)
-		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
+		app.serverErrorResponse(w, r, err)
 	}
 
 }

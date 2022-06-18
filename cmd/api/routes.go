@@ -10,10 +10,14 @@ func (app *application) routes() *httprouter.Router {
 
 	router := httprouter.New()
 
+	router.NotFound = http.HandlerFunc(app.notFoundResponse)
+	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
+
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/editor", app.editRoomHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/rooms", app.editRoomHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/rooms", app.createRoomHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/rooms/:id", app.showRoomHandler)
+	//router.HandlerFunc(http.MethodPut, "/v1/rooms/:id", app.showRoomHandler) //TODO: implement handler
 
 	return router
 }
