@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/WrastAct/EHome/internal/data"
+	"github.com/WrastAct/EHome/internal/validator"
 )
 
 func (app *application) editRoomHandler(w http.ResponseWriter, r *http.Request) {
@@ -13,7 +14,36 @@ func (app *application) editRoomHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (app *application) createRoomHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "create a new room")
+	var input struct {
+		Description   string           `json:"description"`
+		Title         string           `json:"title"`
+		Width         int64            `json:"width"`
+		Height        int64            `json:"height"`
+		FurnitureList []data.Furniture `json:"furniture_list"`
+	}
+
+	err := app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	room := &data.Room{
+		Description:   input.Description,
+		Title:         input.Title,
+		Width:         input.Width,
+		Height:        input.Height,
+		FurnitureList: input.FurnitureList,
+	}
+
+	v := validator.New()
+
+	if data.ValidateRoom(v, room); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	fmt.Fprintf(w, "%+v\n", input)
 }
 
 func (app *application) showRoomHandler(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +81,7 @@ func (app *application) showRoomHandler(w http.ResponseWriter, r *http.Request) 
 
 	room := data.Room{
 		ID:            id,
-		Data:          time.Now(),
+		Date:          time.Now(),
 		Description:   "Hehw",
 		Title:         "Custom room",
 		Width:         500,
