@@ -1,6 +1,8 @@
 package data
 
 import (
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/WrastAct/EHome/internal/validator"
@@ -28,4 +30,96 @@ func ValidateRoom(v *validator.Validator, room *Room) {
 	for _, val := range room.FurnitureList {
 		ValidateFurniture(v, &val)
 	}
+}
+
+type RoomModel struct {
+	DB *sql.DB
+}
+
+func (r RoomModel) Insert(room *Room) error {
+	query := `
+		INSERT INTO room (room_description, title, room_width, room_height)
+		VALUES ($1, $2, $3, $4)
+		RETURNING room_id, date`
+
+	args := []interface{}{room.Description, room.Title, room.Width, room.Height}
+
+	return r.DB.QueryRow(query, args...).Scan(&room.ID, &room.Date)
+}
+
+func (r RoomModel) Get(id int64) (*Room, error) {
+	if id < 1 {
+		return nil, ErrRecordNotFound
+	}
+
+	query := `
+		SELECT room_id, date, room_description, title, room_width, room_height
+		FROM room
+		WHERE room_id = $1`
+
+	var room Room
+
+	err := r.DB.QueryRow(query, id).Scan(
+		&room.ID,
+		&room.Date,
+		&room.Description,
+		&room.Title,
+		&room.Width,
+		&room.Height,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &room, nil
+}
+
+func (r RoomModel) Update(room *Room) error {
+	query := `
+		UPDATE room
+		SET room_description = $1, title = $2, room_width = $3, room_height = $4
+		WHERE room_id = $5`
+
+	args := []interface{}{
+		room.Description,
+		room.Title,
+		room.Width,
+		room.Height,
+		room.ID,
+	}
+
+	_, err := r.DB.Exec(query, args...)
+
+	return err
+}
+
+func (r RoomModel) Delete(id int64) error {
+	if id < 1 {
+		return ErrRecordNotFound
+	}
+
+	query := `
+		DELETE FROM room
+		WHERE room_id = $1`
+
+	result, err := r.DB.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+	return nil
 }
