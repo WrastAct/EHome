@@ -14,12 +14,18 @@ func (app *application) editRoomHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (app *application) createRoomHandler(w http.ResponseWriter, r *http.Request) {
+	type furnitureInput struct {
+		ID int64
+		X  int64
+		Y  int64
+	}
+
 	var input struct {
 		Description   string           `json:"description"`
 		Title         string           `json:"title"`
 		Width         int64            `json:"width"`
 		Height        int64            `json:"height"`
-		FurnitureList []data.Furniture `json:"furniture_list"`
+		FurnitureList []furnitureInput `json:"furniture_list"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -28,12 +34,17 @@ func (app *application) createRoomHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	var furnitureList []data.Furniture
+	for _, val := range input.FurnitureList {
+		furnitureList = append(furnitureList, data.Furniture{ID: val.ID})
+	}
+
 	room := &data.Room{
 		Description:   input.Description,
 		Title:         input.Title,
 		Width:         input.Width,
 		Height:        input.Height,
-		FurnitureList: input.FurnitureList,
+		FurnitureList: furnitureList,
 	}
 
 	v := validator.New()
@@ -59,8 +70,6 @@ func (app *application) showRoomHandler(w http.ResponseWriter, r *http.Request) 
 		Name:        "Chair",
 		Price:       423.75,
 		Description: "heh",
-		X:           10,
-		Y:           25,
 		Width:       25,
 		Height:      25,
 		Image:       "../img",
@@ -71,8 +80,6 @@ func (app *application) showRoomHandler(w http.ResponseWriter, r *http.Request) 
 		ID:     2,
 		Name:   "Table",
 		Price:  103.24,
-		X:      10,
-		Y:      25,
 		Width:  25,
 		Height: 25,
 		Image:  "../img",
