@@ -194,3 +194,42 @@ func (app *application) deleteRoomHandler(w http.ResponseWriter, r *http.Request
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) listRoomHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Title  string `json:"title"`
+		Width  int    `json:"width"`
+		Height int    `json:"height"`
+		data.Filters
+	}
+	v := validator.New()
+	qs := r.URL.Query()
+
+	input.Title = app.readString(qs, "title", "")
+	input.Width = app.readInt(qs, "width", 0, v)
+	input.Height = app.readInt(qs, "height", 0, v)
+
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+
+	input.Filters.SortSafelist = []string{"id", "title", "room_width", "room_height", "-id", "-title", "-room_width", "-room_height"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	rooms, metadata, err := app.models.Room.GetAll(input.Title, input.Width, input.Height, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"rooms": rooms, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+}

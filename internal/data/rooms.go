@@ -1,8 +1,10 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/WrastAct/EHome/internal/validator"
@@ -44,7 +46,10 @@ func (r RoomModel) Insert(room *Room) error {
 
 	args := []interface{}{room.Description, room.Title, room.Width, room.Height}
 
-	return r.DB.QueryRow(query, args...).Scan(&room.ID, &room.Date)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	return r.DB.QueryRowContext(ctx, query, args...).Scan(&room.ID, &room.Date)
 }
 
 func (r RoomModel) Get(id int64) (*Room, error) {
@@ -59,7 +64,10 @@ func (r RoomModel) Get(id int64) (*Room, error) {
 
 	var room Room
 
-	err := r.DB.QueryRow(query, id).Scan(
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := r.DB.QueryRowContext(ctx, query, id).Scan(
 		&room.ID,
 		&room.Date,
 		&room.Description,
@@ -80,6 +88,60 @@ func (r RoomModel) Get(id int64) (*Room, error) {
 	return &room, nil
 }
 
+func (r RoomModel) GetAll(title string, width int, height int, filters Filters) ([]*Room, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT count(*) OVER(), room_id, date, room_description, title, room_width, room_height
+		FROM room
+		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
+		AND (room_width <= $2 OR $2 = 0)
+		AND (room_height <= $3 OR $3 = 0)
+		ORDER BY %s %s, room_id ASC
+		LIMIT $4 OFFSET $5`, filters.sortColumn(), filters.sortDirection())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	args := []interface{}{title, width, height, filters.limit(), filters.offset()}
+
+	rows, err := r.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+
+	defer rows.Close()
+
+	totalRecords := 0
+	rooms := []*Room{}
+
+	for rows.Next() {
+
+		var room Room
+
+		err := rows.Scan(
+			&totalRecords,
+			&room.ID,
+			&room.Date,
+			&room.Description,
+			&room.Title,
+			&room.Width,
+			&room.Height,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+
+		rooms = append(rooms, &room)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+
+	return rooms, metadata, nil
+}
+
 func (r RoomModel) Update(room *Room) error {
 	query := `
 		UPDATE room
@@ -94,7 +156,10 @@ func (r RoomModel) Update(room *Room) error {
 		room.ID,
 	}
 
-	_, err := r.DB.Exec(query, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_, err := r.DB.ExecContext(ctx, query, args...)
 
 	return err
 }
@@ -108,7 +173,10 @@ func (r RoomModel) Delete(id int64) error {
 		DELETE FROM room
 		WHERE room_id = $1`
 
-	result, err := r.DB.Exec(query, id)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result, err := r.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
