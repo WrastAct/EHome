@@ -19,11 +19,15 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/rooms/:id", app.showRoomHandler)
 	router.HandlerFunc(http.MethodPatch, "/v1/rooms/:id", app.updateRoomHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/rooms/:id", app.deleteRoomHandler)
+
 	//router.HandlerFunc(http.MethodGet, "/v1/furniture", app.listFurnitureHandler) //TODO: implement handler
 	//router.HandlerFunc(http.MethodPost, "/v1/furniture", app.createFurnitureHandler) //TODO: implement handler
 	//router.HandlerFunc(http.MethodGet, "/v1/furniture/:id", app.showFurnitureHandler) //TODO: implement handler
 	//router.HandlerFunc(http.MethodPatch, "/v1/furniture/:id", app.updateFurnitureHandler) //TODO: implement handler
 	//router.HandlerFunc(http.MethodDelete, "/v1/furniture/:id", app.deleteFurnitureHandler) //TODO: implement handler
+
+	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
+	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 
 	return app.recoverPanic(app.rateLimit(router))
 }

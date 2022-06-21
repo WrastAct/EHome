@@ -7,16 +7,21 @@ import (
 
 var (
 	ErrRecordNotFound = errors.New("record not found")
+	ErrEditConflict   = errors.New("edit conflict")
 )
 
 type Models struct {
 	Furniture FurnitureModel
 	Room      RoomModel
+	Tokens    TokenModel
+	Users     UserModel
 }
 
 func NewModels(db *sql.DB) Models {
 	return Models{
 		Furniture: FurnitureModel{DB: db},
 		Room:      RoomModel{DB: db},
+		Tokens:    TokenModel{DB: db},
+		Users:     UserModel{DB: db},
 	}
 }
