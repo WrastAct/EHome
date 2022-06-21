@@ -25,5 +25,5 @@ func (app *application) routes() http.Handler {
 	//router.HandlerFunc(http.MethodPatch, "/v1/furniture/:id", app.updateFurnitureHandler) //TODO: implement handler
 	//router.HandlerFunc(http.MethodDelete, "/v1/furniture/:id", app.deleteFurnitureHandler) //TODO: implement handler
 
-	return app.recoverPanic(router)
+	return app.recoverPanic(app.rateLimit(router))
 }
