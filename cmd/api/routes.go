@@ -13,12 +13,12 @@ func (app *application) routes() http.Handler {
 	router.NotFound = http.HandlerFunc(app.notFoundResponse)
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/rooms", app.listRoomHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/rooms", app.createRoomHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/rooms/:id", app.showRoomHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/rooms/:id", app.updateRoomHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/rooms/:id", app.deleteRoomHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.requireActivatedUser(app.healthcheckHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/rooms", app.requireActivatedUser(app.listRoomHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/rooms", app.requireActivatedUser(app.createRoomHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/rooms/:id", app.requireActivatedUser(app.showRoomHandler))
+	router.HandlerFunc(http.MethodPatch, "/v1/rooms/:id", app.requireActivatedUser(app.updateRoomHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/rooms/:id", app.requireActivatedUser(app.deleteRoomHandler))
 
 	//router.HandlerFunc(http.MethodGet, "/v1/furniture", app.listFurnitureHandler) //TODO: implement handler
 	//router.HandlerFunc(http.MethodPost, "/v1/furniture", app.createFurnitureHandler) //TODO: implement handler
@@ -31,5 +31,5 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
 
-	return app.recoverPanic(app.rateLimit(router))
+	return app.recoverPanic(app.rateLimit(app.authenticate(router)))
 }
