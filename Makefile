@@ -3,6 +3,9 @@ include .envrc
 run/api:
 	go run ./cmd/api
 
+test/api:
+	go run ./cmd/api -limiter-enabled=false
+
 psql:
 	psql ${EHOME_DB_DSN}
 
