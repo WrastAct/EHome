@@ -11,17 +11,19 @@ var (
 )
 
 type Models struct {
-	Furniture FurnitureModel
-	Room      RoomModel
-	Tokens    TokenModel
-	Users     UserModel
+	Furniture   FurnitureModel
+	Permissions PermissionModel
+	Room        RoomModel
+	Tokens      TokenModel
+	Users       UserModel
 }
 
 func NewModels(db *sql.DB) Models {
 	return Models{
-		Furniture: FurnitureModel{DB: db},
-		Room:      RoomModel{DB: db},
-		Tokens:    TokenModel{DB: db},
-		Users:     UserModel{DB: db},
+		Furniture:   FurnitureModel{DB: db},
+		Permissions: PermissionModel{DB: db},
+		Room:        RoomModel{DB: db},
+		Tokens:      TokenModel{DB: db},
+		Users:       UserModel{DB: db},
 	}
 }

@@ -13,7 +13,7 @@ func (app *application) routes() http.Handler {
 	router.NotFound = http.HandlerFunc(app.notFoundResponse)
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.requireActivatedUser(app.healthcheckHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.requirePermission("admin", app.healthcheckHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/rooms", app.requireActivatedUser(app.listRoomHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/rooms", app.requireActivatedUser(app.createRoomHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/rooms/:id", app.requireActivatedUser(app.showRoomHandler))
