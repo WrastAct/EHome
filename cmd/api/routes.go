@@ -1,6 +1,7 @@
 package main
 
 import (
+	"expvar"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -14,11 +15,11 @@ func (app *application) routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.requirePermission("admin", app.healthcheckHandler))
-	router.HandlerFunc(http.MethodGet, "/v1/rooms", app.requireActivatedUser(app.listRoomHandler))
-	router.HandlerFunc(http.MethodPost, "/v1/rooms", app.requireActivatedUser(app.createRoomHandler))
-	router.HandlerFunc(http.MethodGet, "/v1/rooms/:id", app.requireActivatedUser(app.showRoomHandler))
-	router.HandlerFunc(http.MethodPatch, "/v1/rooms/:id", app.requireActivatedUser(app.updateRoomHandler))
-	router.HandlerFunc(http.MethodDelete, "/v1/rooms/:id", app.requireActivatedUser(app.deleteRoomHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/rooms", app.requireAuthenticatedUser(app.listRoomHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/rooms", app.requirePermission("user", app.createRoomHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/rooms/:id", app.requirePermission("user", app.showRoomHandler))
+	router.HandlerFunc(http.MethodPatch, "/v1/rooms/:id", app.requirePermission("user", app.updateRoomHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/rooms/:id", app.requirePermission("user", app.deleteRoomHandler))
 
 	//router.HandlerFunc(http.MethodGet, "/v1/furniture", app.listFurnitureHandler) //TODO: implement handler
 	//router.HandlerFunc(http.MethodPost, "/v1/furniture", app.createFurnitureHandler) //TODO: implement handler
@@ -31,5 +32,7 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
 
-	return app.recoverPanic(app.rateLimit(app.authenticate(router)))
+	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
+
+	return app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router))))
 }
