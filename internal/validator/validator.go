@@ -47,6 +47,16 @@ func In(value string, list ...string) bool {
 	return false
 }
 
+// InInts returns true if a specific value is in a list of ints.
+func InInts(value int64, list ...int64) bool {
+	for i := range list {
+		if value == list[i] {
+			return true
+		}
+	}
+	return false
+}
+
 // Matches returns true if a string value matches a specific regexp pattern.
 func Matches(value string, rx *regexp.Regexp) bool {
 	return rx.MatchString(value)

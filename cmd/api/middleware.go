@@ -29,8 +29,6 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 }
 
 func (app *application) rateLimit(next http.Handler) http.Handler {
-	// Define a client struct to hold the rate limiter and last seen time for each
-	// client.
 	type client struct {
 		limiter  *rate.Limiter
 		lastSeen time.Time

@@ -11,13 +11,14 @@ import (
 )
 
 type Room struct {
-	ID            int64       `json:"id"` // Unique integer ID for the Room
-	Date          time.Time   `json:"-"`  // Timestamp when Room was created for our database
-	Description   string      `json:"description,omitempty"`
-	Title         string      `json:"title"` // Custom Title for Room created by user
-	Width         int64       `json:"width"`
-	Height        int64       `json:"height"`
-	FurnitureList []Furniture `json:"furniture_list,omitempty"` // Furniture inside room
+	ID            int64           `json:"id"` // Unique integer ID for the Room
+	OwnerID       int64           `json:"-"`  // User ID who owns the Room
+	Date          time.Time       `json:"-"`  // Timestamp when Room was created for our database
+	Description   string          `json:"description,omitempty"`
+	Title         string          `json:"title"` // Custom Title for Room created by user
+	Width         int64           `json:"width"`
+	Height        int64           `json:"height"`
+	FurnitureList []FurnitureList `json:"furniture_list,omitempty"` // Furniture inside room
 }
 
 func ValidateRoom(v *validator.Validator, room *Room) {
@@ -28,10 +29,6 @@ func ValidateRoom(v *validator.Validator, room *Room) {
 
 	v.Check(room.Width != 0, "width", "must be provided")
 	v.Check(room.Height != 0, "height", "must be provided")
-
-	for _, val := range room.FurnitureList {
-		ValidateFurniture(v, &val)
-	}
 }
 
 type RoomModel struct {
@@ -40,11 +37,11 @@ type RoomModel struct {
 
 func (r RoomModel) Insert(room *Room) error {
 	query := `
-		INSERT INTO room (room_description, title, room_width, room_height)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO room (user_id, room_description, title, room_width, room_height)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING room_id, date`
 
-	args := []interface{}{room.Description, room.Title, room.Width, room.Height}
+	args := []interface{}{room.OwnerID, room.Description, room.Title, room.Width, room.Height}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

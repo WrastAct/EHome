@@ -162,6 +162,40 @@ func (f FurnitureModel) GetAll() ([]*Furniture, error) {
 	return furnitures, nil
 }
 
+func (f FurnitureModel) GetAllID() ([]int64, error) {
+	query := `SELECT furniture_id FROM furniture`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := f.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	furnitureIDs := make([]int64, 0)
+
+	for rows.Next() {
+
+		var furnitureID int64
+
+		err := rows.Scan(&furnitureID)
+		if err != nil {
+			return nil, err
+		}
+
+		furnitureIDs = append(furnitureIDs, furnitureID)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return furnitureIDs, nil
+}
+
 func (f FurnitureModel) Update(furniture *Furniture) error {
 	query := `
 		UPDATE furniture

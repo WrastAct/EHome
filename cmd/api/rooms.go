@@ -11,9 +11,10 @@ import (
 
 func (app *application) createRoomHandler(w http.ResponseWriter, r *http.Request) {
 	type furnitureInput struct {
-		ID int64
-		X  int64
-		Y  int64
+		FurnitureID int64 `json:"furniture_id"`
+		RoomID      int64 `json:"-"`
+		X           int64 `json:"x"`
+		Y           int64 `json:"y"`
 	}
 
 	var input struct {
@@ -30,12 +31,35 @@ func (app *application) createRoomHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var furnitureList []data.Furniture
+	furnitureIDs, err := app.models.Furniture.GetAllID()
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	var furnitureList []data.FurnitureList
 	for _, val := range input.FurnitureList {
-		furnitureList = append(furnitureList, data.Furniture{ID: val.ID})
+		if !validator.InInts(val.FurnitureID, furnitureIDs...) {
+			err = errors.New("no furniture with this id")
+			app.badRequestResponse(w, r, err)
+			return
+		}
+
+		furnitureList = append(furnitureList, data.FurnitureList{
+			FurnitureID: val.FurnitureID,
+			X:           val.X,
+			Y:           val.Y,
+		})
+	}
+
+	user := app.contextGetUser(r)
+	if user.IsAnonymous() {
+		app.authenticationRequiredResponse(w, r)
+		return
 	}
 
 	room := &data.Room{
+		OwnerID:       user.ID,
 		Description:   input.Description,
 		Title:         input.Title,
 		Width:         input.Width,
@@ -54,6 +78,15 @@ func (app *application) createRoomHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
+	}
+
+	for key := range furnitureList {
+		furnitureList[key].RoomID = room.ID
+	}
+
+	err = app.models.FurnitureList.InsertTransaction(furnitureList)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
 	}
 
 	headers := make(http.Header)
@@ -84,6 +117,19 @@ func (app *application) showRoomHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	furnitureList, err := app.models.FurnitureList.GetAll(room.ID)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	room.FurnitureList = furnitureList
+
 	err = app.writeJSON(w, http.StatusOK, envelope{"room": room}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -108,10 +154,24 @@ func (app *application) updateRoomHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	furnitureList, err := app.models.FurnitureList.GetAll(room.ID)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	room.FurnitureList = furnitureList
+
 	type furnitureInput struct {
-		ID int64
-		X  int64
-		Y  int64
+		FurnitureID int64 `json:"furniture_id"`
+		RoomID      int64 `json:"room_id"`
+		X           int64 `json:"x"`
+		Y           int64 `json:"y"`
 	}
 
 	var input struct {
@@ -144,19 +204,49 @@ func (app *application) updateRoomHandler(w http.ResponseWriter, r *http.Request
 		room.Height = *input.Height
 	}
 
-	if input.FurnitureList != nil {
-		var furnitureList []data.Furniture
-		for _, val := range input.FurnitureList {
-			furnitureList = append(furnitureList, data.Furniture{ID: val.ID})
-		}
-		room.FurnitureList = furnitureList
-	}
-
 	v := validator.New()
 
 	if data.ValidateRoom(v, room); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
+	}
+
+	if input.FurnitureList != nil {
+		furnitureIDs, err := app.models.Furniture.GetAllID()
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+
+		var furnitureList []data.FurnitureList
+		for _, val := range input.FurnitureList {
+			if !validator.InInts(val.FurnitureID, furnitureIDs...) {
+				err = errors.New("no furniture with this id")
+				app.badRequestResponse(w, r, err)
+				return
+			}
+
+			furnitureList = append(furnitureList, data.FurnitureList{
+				FurnitureID: val.FurnitureID,
+				RoomID:      room.ID,
+				X:           val.X,
+				Y:           val.Y,
+			})
+		}
+
+		for _, val := range furnitureList {
+			if data.ValidateFurnitureList(v, &val); !v.Valid() {
+				app.failedValidationResponse(w, r, v.Errors)
+				return
+			}
+		}
+
+		room.FurnitureList = furnitureList
+		app.models.FurnitureList.Delete(room.ID)
+		err = app.models.FurnitureList.InsertTransaction(furnitureList)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+		}
 	}
 
 	err = app.models.Room.Update(room)
@@ -225,6 +315,21 @@ func (app *application) listRoomHandler(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
+	}
+
+	for _, val := range rooms {
+		furnitureList, err := app.models.FurnitureList.GetAll(val.ID)
+		if err != nil {
+			switch {
+			case errors.Is(err, data.ErrRecordNotFound):
+				app.notFoundResponse(w, r)
+			default:
+				app.serverErrorResponse(w, r, err)
+			}
+			return
+		}
+
+		val.FurnitureList = furnitureList
 	}
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"rooms": rooms, "metadata": metadata}, nil)
