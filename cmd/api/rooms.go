@@ -154,6 +154,17 @@ func (app *application) updateRoomHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	user := app.contextGetUser(r)
+	if user.IsAnonymous() {
+		app.authenticationRequiredResponse(w, r)
+		return
+	}
+
+	if room.OwnerID != user.ID {
+		app.foreignRoomResponse(w, r)
+		return
+	}
+
 	furnitureList, err := app.models.FurnitureList.GetAll(room.ID)
 	if err != nil {
 		switch {
@@ -265,6 +276,28 @@ func (app *application) deleteRoomHandler(w http.ResponseWriter, r *http.Request
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
+		return
+	}
+
+	room, err := app.models.Room.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	user := app.contextGetUser(r)
+	if user.IsAnonymous() {
+		app.authenticationRequiredResponse(w, r)
+		return
+	}
+
+	if room.OwnerID != user.ID {
+		app.foreignRoomResponse(w, r)
 		return
 	}
 

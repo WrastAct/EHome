@@ -55,7 +55,7 @@ func (r RoomModel) Get(id int64) (*Room, error) {
 	}
 
 	query := `
-		SELECT room_id, date, room_description, title, room_width, room_height
+		SELECT room_id, user_id, date, room_description, title, room_width, room_height
 		FROM room
 		WHERE room_id = $1`
 
@@ -66,6 +66,7 @@ func (r RoomModel) Get(id int64) (*Room, error) {
 
 	err := r.DB.QueryRowContext(ctx, query, id).Scan(
 		&room.ID,
+		&room.OwnerID,
 		&room.Date,
 		&room.Description,
 		&room.Title,
