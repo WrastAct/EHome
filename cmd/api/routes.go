@@ -21,11 +21,11 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/rooms/:id", app.requirePermission("user", app.updateRoomHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/rooms/:id", app.requirePermission("user", app.deleteRoomHandler))
 
-	//router.HandlerFunc(http.MethodGet, "/v1/furniture", app.listFurnitureHandler) //TODO: implement handler
-	//router.HandlerFunc(http.MethodPost, "/v1/furniture", app.createFurnitureHandler) //TODO: implement handler
-	//router.HandlerFunc(http.MethodGet, "/v1/furniture/:id", app.showFurnitureHandler) //TODO: implement handler
-	//router.HandlerFunc(http.MethodPatch, "/v1/furniture/:id", app.updateFurnitureHandler) //TODO: implement handler
-	//router.HandlerFunc(http.MethodDelete, "/v1/furniture/:id", app.deleteFurnitureHandler) //TODO: implement handler
+	router.HandlerFunc(http.MethodGet, "/v1/furniture", app.listFurnitureHandler)
+	router.HandlerFunc(http.MethodPost, "/v1/furniture", app.createFurnitureHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/furniture/:id", app.showFurnitureHandler)
+	router.HandlerFunc(http.MethodPatch, "/v1/furniture/:id", app.updateFurnitureHandler)
+	router.HandlerFunc(http.MethodDelete, "/v1/furniture/:id", app.deleteFurnitureHandler)
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)

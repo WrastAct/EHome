@@ -28,16 +28,24 @@ type Furniture struct {
 }
 
 func ValidateFurniture(v *validator.Validator, furniture *Furniture) {
-	v.Check(furniture.ID != 0, "furniture_id", "must be provided")
-	v.Check(furniture.ID > 0, "furniture_id", "must be positive number")
-
 	v.Check(furniture.Name != "", "furniture_name", "must be provided")
+	v.Check(len(furniture.Name) <= 40, "furniture_name", "must not be more than 40 bytes long")
+
+	v.Check(len(furniture.Description) <= 100, "description", "must not be more than 100 bytes long")
+
+	v.Check(furniture.Price != 0, "furniture_price", "must be provided")
 	v.Check(furniture.Price > 0, "furniture_price", "must be positive number")
 
 	v.Check(furniture.Width != 0, "furniture_width", "must be provided")
+	v.Check(furniture.Width > 0, "furniture_width", "must be positive number")
+	v.Check(furniture.Width < 1000, "furniture_width", "must be less than 1000")
 	v.Check(furniture.Height != 0, "furniture_height", "must be provided")
+	v.Check(furniture.Height > 0, "furniture_height", "must be positive number")
+	v.Check(furniture.Height < 1000, "furniture_width", "must be less than 1000")
 
-	v.Check(furniture.Image != "", "furniture_image", "must be provided")
+	//v.Check(furniture.Image != "", "furniture_image", "must be provided")
+	v.Check(len(furniture.Image) <= 100, "furniture_image", "must not be more than 100 bytes long")
+
 	v.Check(furniture.Shape == Rectangle ||
 		furniture.Shape == Circle, "furniture_shape", "must be a correct value")
 }
